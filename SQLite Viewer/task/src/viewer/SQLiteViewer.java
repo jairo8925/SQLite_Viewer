@@ -2,6 +2,8 @@ package viewer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +42,13 @@ public class SQLiteViewer extends JFrame {
         JTextArea queryTextArea = new JTextArea();
         queryTextArea.setName("QueryTextArea");
         queryTextArea.setBounds(25, 120, 480, 120);
+        queryTextArea.setEnabled(false);
         add(queryTextArea);
 
         JButton executeQueryButton = new JButton("Execute");
         executeQueryButton.setName("ExecuteQueryButton");
         executeQueryButton.setBounds(520, 120, 135, 40);
+        executeQueryButton.setEnabled(false);
         add(executeQueryButton);
 
         JTable table = new JTable();
@@ -55,20 +59,28 @@ public class SQLiteViewer extends JFrame {
         add(new JScrollPane(table));
 
         openFileButton.addActionListener(e -> {
+            executeQueryButton.setEnabled(false);
+            queryTextArea.setEnabled(false);
             String filename = nameTextField.getText();
-            String url = "jdbc:sqlite:" + filename;
-            String sql = "SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
-            try (Connection conn = DriverManager.getConnection(url);
-                 PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs    = pstmt.executeQuery()) {
-                tablesComboBox.removeAllItems();
-                while (rs.next()) {
-                    System.out.println(rs.getString("name"));
-                    tablesComboBox.addItem(rs.getString("name"));
+            File file = new File (filename);
+            if (!file.exists()) {
+                JOptionPane.showMessageDialog(new Frame(), "File doesn't exist!");
+            } else {
+                String url = "jdbc:sqlite:" + filename;
+                String sql = "SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
+                try (Connection conn = DriverManager.getConnection(url);
+                     PreparedStatement pstmt = conn.prepareStatement(sql);
+                     ResultSet rs = pstmt.executeQuery()) {
+                    tablesComboBox.removeAllItems();
+                    while (rs.next()) {
+                        tablesComboBox.addItem(rs.getString("name"));
+                    }
+                    queryTextArea.setText("SELECT * FROM " + tablesComboBox.getSelectedItem() + ";");
+                } catch (SQLException exception) {
+                    System.out.println(exception.getMessage());
                 }
-                queryTextArea.setText("SELECT * FROM " + tablesComboBox.getSelectedItem() + ";");
-            } catch (SQLException exception) {
-                System.out.println(exception.getMessage());
+                queryTextArea.setEnabled(true);
+                executeQueryButton.setEnabled(true);
             }
         });
 

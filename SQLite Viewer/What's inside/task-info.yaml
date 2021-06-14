@@ -327,17 +327,12 @@ files:
         }
     }
   learner_created: false
-- name: chinook.db
+- name: src/chinook.db
   visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/projects/171/stages/887/implement#comment
-status: Failed
+status: Solved
 feedback:
-  message: |-
-    Wrong answer in test #2
-
-    Wrong number of items of &#39;TablesComboBox&#39; combo box.
-    Expected 2 tables
-    Found 0
-  time: Mon, 14 Jun 2021 20:11:48 UTC
+  message: Congratulations!
+  time: Mon, 14 Jun 2021 20:36:26 UTC
 record: 3
