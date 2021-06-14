@@ -330,12 +330,14 @@ files:
 - name: chinook.db
   visible: true
   learner_created: true
-- name: src/HelloWorld.java
-  visible: true
-  learner_created: true
 feedback_link: https://hyperskill.org/projects/171/stages/887/implement#comment
-status: Solved
+status: Failed
 feedback:
-  message: Congratulations!
-  time: Mon, 14 Jun 2021 07:57:01 UTC
+  message: |-
+    Wrong answer in test #2
+
+    Wrong number of items of &#39;TablesComboBox&#39; combo box.
+    Expected 2 tables
+    Found 0
+  time: Mon, 14 Jun 2021 20:11:48 UTC
 record: 3

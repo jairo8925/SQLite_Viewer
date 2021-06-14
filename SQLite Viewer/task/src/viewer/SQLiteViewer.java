@@ -2,10 +2,8 @@ package viewer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.ItemEvent;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class SQLiteViewer extends JFrame {
@@ -56,34 +54,26 @@ public class SQLiteViewer extends JFrame {
 
         add(new JScrollPane(table));
 
-
         openFileButton.addActionListener(e -> {
-            List<String> tables = new ArrayList<>();
-            tablesComboBox.removeAllItems();
             String filename = nameTextField.getText();
             String url = "jdbc:sqlite:" + filename;
             String sql = "SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
             try (Connection conn = DriverManager.getConnection(url);
-                 Statement stmt  = conn.createStatement();
-                 ResultSet rs    = stmt.executeQuery(sql)) {
+                 PreparedStatement pstmt = conn.prepareStatement(sql);
+                 ResultSet rs    = pstmt.executeQuery()) {
+                tablesComboBox.removeAllItems();
                 while (rs.next()) {
-                    tables.add(rs.getString("name"));
+                    System.out.println(rs.getString("name"));
+                    tablesComboBox.addItem(rs.getString("name"));
                 }
+                queryTextArea.setText("SELECT * FROM " + tablesComboBox.getSelectedItem() + ";");
             } catch (SQLException exception) {
                 System.out.println(exception.getMessage());
-            }
-            for (String item : tables) {
-                tablesComboBox.addItem(item);
             }
         });
 
         tablesComboBox.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                queryTextArea.setText("SELECT * FROM " + e.getItem().toString() + ";");
-            }
-            if (e.getStateChange() == ItemEvent.DESELECTED){
-                queryTextArea.setText("");
-            }
+            queryTextArea.setText("SELECT * FROM " + e.getItem().toString() + ";");
         });
 
         executeQueryButton.addActionListener(e -> {
@@ -98,38 +88,31 @@ public class SQLiteViewer extends JFrame {
                 ResultSetMetaData rsmd = rs.getMetaData();
                 int columnCount = rsmd.getColumnCount();
                 for (int i = 1; i <= columnCount; i++) {
-                   columns.add(rsmd.getColumnName(i));
+                    columns.add(rsmd.getColumnName(i));
                 }
             } catch (SQLException exception) {
                 System.out.println(exception.getMessage());
             }
 
-            Object[][] data = null;
+            List<String[]> lst = new ArrayList<>();
 
             String sql = queryTextArea.getText();
             try (Connection conn = DriverManager.getConnection(url);
                  Statement stmt  = conn.createStatement();
                  ResultSet rs    = stmt.executeQuery(sql)) {
-                data = new Object[3][5];
-                int counter = 0;
                 while (rs.next()) {
+                    String[] row = new String[columns.size()];
                     for (int i = 0; i < columns.size(); i++) {
-                        data[counter][i] = rs.getString(columns.get(i));
-                        // System.out.print(data[counter][i] + " ");
-                        // System.out.println(rs.getString(columns.get(i)));
+                        row[i] = rs.getString(columns.get(i));
                     }
-                    // System.out.println();
-                    counter++;
-                    System.out.println(Arrays.deepToString(data));
+                    lst.add(row);
                 }
             } catch (SQLException exception) {
                 System.out.println(exception.getMessage());
             }
 
-            DefaultTableModel model = new DefaultTableModel(data, columns.toArray());
+            DefaultTableModel model = new DefaultTableModel(lst.toArray(Object[][]::new), columns.toArray());
             table.setModel(model);
-            System.out.println(table.getColumnCount());
-            System.out.println(table.getRowCount());
         });
     }
 }
