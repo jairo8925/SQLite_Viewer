@@ -1,14 +1,16 @@
 package viewer;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.io.File;
-import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class SQLiteViewer extends JFrame {
+
+    private static SQLiteService service;
+    private static String filename;
 
     public SQLiteViewer() {
         super("SQLite Viewer");
@@ -54,77 +56,56 @@ public class SQLiteViewer extends JFrame {
         JTable table = new JTable();
         table.setName("Table");
         table.setBounds(25, 275, 630, 550);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         add(table);
 
-        add(new JScrollPane(table));
+        JScrollPane scrollPane = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setBounds(25, 275, 630, 550);
+        scrollPane.setPreferredSize(new Dimension(630, 550));
+        scrollPane.setSize(630,550);
+        getContentPane().add(scrollPane);
+        add(scrollPane);
 
         openFileButton.addActionListener(e -> {
+            tablesComboBox.removeAllItems();
             executeQueryButton.setEnabled(false);
             queryTextArea.setEnabled(false);
-            String filename = nameTextField.getText();
+            filename = nameTextField.getText().trim();
             File file = new File (filename);
             if (!file.exists()) {
                 JOptionPane.showMessageDialog(new Frame(), "File doesn't exist!");
             } else {
-                String url = "jdbc:sqlite:" + filename;
-                String sql = "SELECT name FROM sqlite_master WHERE type ='table' AND name NOT LIKE 'sqlite_%'";
-                try (Connection conn = DriverManager.getConnection(url);
-                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                     ResultSet rs = pstmt.executeQuery()) {
-                    tablesComboBox.removeAllItems();
-                    while (rs.next()) {
-                        tablesComboBox.addItem(rs.getString("name"));
-                    }
-                    queryTextArea.setText("SELECT * FROM " + tablesComboBox.getSelectedItem() + ";");
-                } catch (SQLException exception) {
-                    System.out.println(exception.getMessage());
-                }
-                queryTextArea.setEnabled(true);
-                executeQueryButton.setEnabled(true);
+                service = new SQLiteService(filename); // establish connection to database
+                List<String> tables = service.getTables(); // get all tables of database
+                tables.forEach(tablesComboBox::addItem); // add all tables to selection box
+                queryTextArea.setEnabled(!tables.isEmpty());
+                executeQueryButton.setEnabled(!tables.isEmpty());
             }
         });
 
-        tablesComboBox.addItemListener(e -> {
-            queryTextArea.setText("SELECT * FROM " + e.getItem().toString() + ";");
+        tablesComboBox.addItemListener(itemEvent -> {
+            String tableName = itemEvent.getItem().toString();
+            queryTextArea.setText("SELECT * FROM " + tableName + ";");
         });
 
         executeQueryButton.addActionListener(e -> {
-            List<String> columns = new ArrayList<>();
-            String filename = nameTextField.getText();
-            String url = "jdbc:sqlite:" + filename;
-
-            String com = "SELECT * FROM " + tablesComboBox.getSelectedItem() + ";";
-            try (Connection conn = DriverManager.getConnection(url);
-                 Statement stmt  = conn.createStatement();
-                 ResultSet rs    = stmt.executeQuery(com)) {
-                ResultSetMetaData rsmd = rs.getMetaData();
-                int columnCount = rsmd.getColumnCount();
-                for (int i = 1; i <= columnCount; i++) {
-                    columns.add(rsmd.getColumnName(i));
-                }
-            } catch (SQLException exception) {
-                System.out.println(exception.getMessage());
+            if (service == null) {
+                throw new IllegalStateException();
             }
 
-            List<String[]> lst = new ArrayList<>();
+            TableModel model = service.executeQuery(queryTextArea.getText());
 
-            String sql = queryTextArea.getText();
-            try (Connection conn = DriverManager.getConnection(url);
-                 Statement stmt  = conn.createStatement();
-                 ResultSet rs    = stmt.executeQuery(sql)) {
-                while (rs.next()) {
-                    String[] row = new String[columns.size()];
-                    for (int i = 0; i < columns.size(); i++) {
-                        row[i] = rs.getString(columns.get(i));
-                    }
-                    lst.add(row);
-                }
-            } catch (SQLException exception) {
-                System.out.println(exception.getMessage());
+            if (model == null) {
+                throw new IllegalStateException();
             }
 
-            DefaultTableModel model = new DefaultTableModel(lst.toArray(Object[][]::new), columns.toArray());
             table.setModel(model);
+            for (int i = 0; i < model.getColumnCount(); i++) {
+                TableColumn column = table.getColumnModel().getColumn(i);
+                column.setMinWidth(175);
+                column.setMaxWidth(520);
+                column.setPreferredWidth(200);
+            }
         });
     }
 }
