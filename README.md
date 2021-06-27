@@ -1,6 +1,6 @@
 # SQLite Viewer
 
-A SWING application that shows the contents of a database. 
+A SWING application that shows the contents of a database. Put the database files in your working directory (pwd in terminal).
 
 ### Enter the database file name and press the ```Open``` button to establish a connection with the database.
 ![Alt text](images/step1.png?raw=true "Choose database")
