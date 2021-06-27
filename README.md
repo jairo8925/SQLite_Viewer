@@ -2,7 +2,6 @@
 
 A SWING application that shows the contents of a database. 
 
-<br/><br/>
 ### Enter the database file name and press the ```Open``` button to establish a connection with the database.
 ![Alt text](images/step1.png?raw=true "Choose database")
 
